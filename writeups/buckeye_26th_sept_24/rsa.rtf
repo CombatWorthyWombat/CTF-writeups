@@ -4,7 +4,7 @@ and a little bit of text: "some 128 fun"
 ===========================================================================
 rsa is an encryption algorithm that uses a public key to encrypt data, that can only be decrypted using a private key
 when looking for clues with rsa we look for the following values:
-p and q = the two random large primes used for the trapdoor operation
+**p** and **q** = the two random large primes used for the trapdoor operation
 n = this is the product of the two primes
 phi/euler's totient = (p-1)(q-1), used in the calculation for the decryption
 lamda/carmichael's totient = lcm(p-1,q-1), used in the generation of the decrypt function
@@ -22,7 +22,7 @@ n =66082519841206442253261420880518905643648844231755824847819839195516869801231
 c = 19146395818313260878394498164948015155839880044374872805448779372117637653026
 the rest of the code indicates that this is standard rsa, so no need to inspect it further for funky alterations and weaknesses in the algorithm
 the "some 128 fun" indicates this is using rsa 128 (1024 bits) so the key size is 2^128 meaning we are looking for values of d of up to 309 digits. rsa 128 is not recommended and is considered weak due to the ease of factoring the comparatively smaller values of n
-in order to decrypt, we need to do: m \f2\u8801?\f3  \f0 c^d, we are given c, so we need to find d
+in order to decrypt, we need to do: m congruent to c^d, we are given c, so we need to find d
 as d is congruent to e^-1 (mod lamda(n)), and we already have e, all we need is to calculate lamda(n), which involves the two primes; p and q
 as n = p*q, and we have n, we can  check factorDB for known factors of the value n
 factorDB returns:
