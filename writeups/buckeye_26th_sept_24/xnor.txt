@@ -1,0 +1,71 @@
+we are given the following:
+a file titled: "xnor.py"
+another file titled: "xnor_output.txt"
+and a message titled: "XNOR! It's like XOR, but it's actually the complete opposite."
+===========================================================================
+XOR gates, or exclusive or gates, are a type of logic gate that produce a truth table as such:
+
+when |A=1|B=1|->0|
+when |A=1|B=0|->1|
+when |A=0|B=1|->1|
+when |A=0|B=0|->0|
+
+in an OR gate, if either of the inputs are "on", the output is also "on"
+XOR is a modification to the OR gate, which produces an "off" when both inputs are "on"
+
+the XNOR is likely an inversion of this, adding a NOT gate on the output
+
+A >---\
+   	>---XOR---> >---NOT---> output
+B >---/
+
+===========================================================================
+lets look at the code: "xnor.py"
+
+it defines xnor(A,B) using the following truth table:
+
+when |A=1|B=1|->1|
+when |A=1|B=0|->0|
+when |A=0|B=1|->0|
+when |A=0|B=0|->1|
+
+as the encoding operation requires a pair of bits to encode, a key is generated of length = message length
+
+this is done using: key = os.random(37)
+amusingly, if you tried to encode a message of (binary) length =/= 37 using this script, you would return an error
+
+importantly though, the same len37 key was used in the encoding of two messages:
+
+the flag
+Blue is greener than purple for sure!
+===========================================================================
+
+the "xnor_output.txt" file gives us a message + encrypted message pair:
+
+Blue is greener than purple for sure!
+fe9d88f3d675d0c90d95468212b79e929efffcf281d04f0cfa6d07704118943da2af36b9f8
+
+as the truth table works on binary, we convert both the message and encrypted message to binary:
+
+message = 11111110100111011000100011110011110101100111010111010000110010010000110110010101010001101000001000010010101101111001111010010010100111101111111111111100111100101000000111010000010011110000110011111010011011010000011101110000010000010001100010010100001111011010001010101111001101101011100111111000
+encrypted message = 01000010011011000111010101100101001000000110100101110011001000000110011101110010011001010110010101101110011001010111001000100000011101000110100001100001011011100010000001110000011101010111001001110000011011000110010100100000011001100110111101110010001000000111001101110101011100100110010100100001
+
+there exists a series of 0s and 1s, such that using the XNOR table, converts the message to the encrypted message. this is the key
+
+(message) XNOR (key) = (encrypted message)
+
+as XNOR (and XOR) are symmetrical, we can simply; (message) XNOR (encrypted message) = (key)
+
+plugging back into the same code these values we get the key:
+01000011000011100000001001101001000010011110001101011100000101101001010100011000110111000001100010000011001011010001001101001101000101010110100001100010011000110101111001011111110001011000000101110101111111101001110110101111110110001000100000011001111000100010111000100101101110110010001100100110
+===========================================================================
+now for the flag...
+
+given: (flag) XNOR (key) = (encrypted flag), we can do the same as before and compute: (encrypted flag) XNOR (key) = (flag)
+
+doing that gives us: 0110001001100011011101000110011001111011011101110110100001111001010111110111100001101110001100000111001001011111011110010011000001110101010111110110001000110011001100010110111001100111 01011111 01110011 01101111 0101111100110011011110000110001101101100011101010011010100110001011101100011001101111101
+
+try binary -> unicode: gibberish
+probably should have known, default unicode uses 16 bits so wouldn't have been long enough
+
+try binary -> ASCII: bctf{why_xn0r_y0u_b31ng_so_3xclu51v3}
