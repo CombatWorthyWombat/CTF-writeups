@@ -1,6 +1,6 @@
 A collection of writeups for various CTFs
 
-Participated in under the team name VxPx
+All participated in under the team name VxPx
 
 Primarily a learning exercise for myself, and perhaps even for others to learn from
 
