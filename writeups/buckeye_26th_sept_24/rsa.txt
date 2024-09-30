@@ -3,40 +3,61 @@ a file titled: "rsa.py"
 and a little bit of text: "some 128 fun"
 ===========================================================================
 rsa is an encryption algorithm that uses a public key to encrypt data, that can only be decrypted using a private key
+
 when looking for clues with rsa we look for the following values:
+
 **p** and **q** = the two random large primes used for the trapdoor operation
+
 **n** = this is the product of the two primes
-**phi/euler's totient** = **(p-1)(q-1)**, used in the calculation for the decryption
-**lamda/carmichael's totient** = **lcm(p-1,q-1)**, used in the generation of the decrypt function
+
+**phi/euler's totient = (p-1)(q-1)**, used in the calculation for the decryption
+
+**lamda/carmichael's totient = lcm(p-1,q-1)**, used in the generation of the decrypt function
+
 consequently: **lamda(q)** = **q-1**
-and **lamda(p)** = **p-1**
-**e** = the public key exponent, default is 65537. sometimes 3 is also used. **e** must be coprime with **lamda(n)**
-**phi/euler's totient** = **(p-1)(q-1)**, an alternative and very similar function to carmichael's totient, used in the original paper. sometimes results in values of **d > lamda(n)**
-**d** is congruent to **e^-1 (mod lamda(n))**, **d** is the "modular multiplicative inverse of **e**", this is the private key exponent
+
+and **lamda(p) = p-1**
+
+**e** = the public key exponent, default is 65537. sometimes 3 is also used. **e must be coprime with lamda(n)**
+
+**phi/euler's totient = (p-1)(q-1)**, an alternative and very similar function to carmichael's totient, used in the original paper. sometimes results in values of **d > lamda(n)**
+
+**d is congruent to e^-1 (mod lamda(n))**, **d** is the "modular multiplicative inverse of **e**", this is the private key exponent
+
 **m** = unencrypted message, **m = c^d**
-**c** = encrypted message, **c** is congruent to **m^e (mod n)**
+
+**c** = encrypted message, **c is congruent to m^e (mod n)**
 ===========================================================================
 "rsa.py" contains values for:
 **e** = 65537
 **n** =66082519841206442253261420880518905643648844231755824847819839195516869801231
 **c** = 19146395818313260878394498164948015155839880044374872805448779372117637653026
+
 the rest of the code indicates that this is standard rsa, so no need to inspect it further for funky alterations and weaknesses in the algorithm
 the "some 128 fun" indicates this is using rsa 128 (1024 bits) so the key size is 2^128 meaning we are looking for values of d of up to 309 digits.
 rsa 128 is not recommended and is considered weak due to the ease of factoring the comparatively smaller values of **n**
-in order to decrypt, we need to do: **m** congruent to **c^d**, we are given **c**, so we need to find **d**
-as **d** is congruent to **e^-1 (mod lamda(n))**, and we already have **e**, all we need is to calculate **lamda(n)**, which involves the two primes; **p** and **q**
+
+in order to decrypt, we need to do: **m congruent to c^d**, we are given **c**, so we need to find **d**
+
+as **d is congruent to e^-1 (mod lamda(n))**, and we already have **e**, all we need is to calculate **lamda(n)**, which involves the two primes; **p** and **q**
+
 as **n = p*q**, and we have n, we can  check factorDB for known factors of the value **n**
 factorDB returns:
 **p** = 213055785127022839309619937270901673863
 **q** = 310165339100312907369816767764432814137
-**phi(n)** = 66082519841206442253261420880518905643125623107528489101140402490481535313232
-i just happened to use **phi(n)** here, you could just as easily use **lamda(n)**
+
+therefore **phi(n)** = 66082519841206442253261420880518905643125623107528489101140402490481535313232
+[i just happened to use **phi(n)** here, you could just as easily use **lamda(n)**]
+
 therefore; **d** = (65537)^-1(mod(66082519841206442253261420880518905643125623107528489101140402490481535313232)
 **d** = 36616272113669694126751838470713696683163157873060859563587173292023535916577
-now we can easily calculate **m** congruent to **c^d**, which comes to:
+
+now we can easily calculate **m congruent to c^d**, which comes to:
 173837423383044571441359179355396996357282245146783171632617116789291431037
+===========================================================================
 try decimal to ascii = some hashtags and percentage marks... 
 hmm not ascii, try unicode?
 decimal to unicode = a lot of chineese chars...
 try hex text?
+
 decimal -> hex -> hextext -> **flag = bctf\{f4c70r1z3_b3773r_4d3b35e4\}**
