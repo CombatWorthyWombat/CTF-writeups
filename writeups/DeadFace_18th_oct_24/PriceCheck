@@ -1,1 +1,27 @@
-Price Ch
+we are given the following:
+a file titled: "STEG05-1.csv"
+and a little bit of text:
+
+"DEADFACE has been hacking random people all over town and no one can seem to figure out what they are doing.
+All we know at this time is that the most recent site that was hit was Otto’s Grocery Store.
+Oddly, only the customers are being affected and not the company’s network. What is happening?
+They hired our firm to sniff out the attack and we successfully captured a strange file being sent
+across the guest WiFi. We believe this is the primary attack vector,
+and we’ve heard some victims mention that they had to “scan” something - maybe it is in the wrong format?
+Can you figure out how this file is being used in the attack to reveal the flag?"
+===========================================================================
+first impressions
+
+whats a .csv file? apparently used by spreadsheets
+
+as people are being asked to "scan" things, maybe looking for a barcode
+===========================================================================
+opening the file in a spreadsheet application:
+smallish spreadsheet with some cells containing a '0' and others '255'
+'255' is the max value for rgb colour? maybe shade in the cells
+
+-> once we do that, we can see a QR code taking shape, resize columns and rows to make it square
+
+scanning the code gives us the flag:
+
+flag{that_will_be_five_dollars}
