@@ -1,0 +1,25 @@
+we are given the following:
+a file titled: "steg_09.mov"
+the companion text includes:
+"this is a video clip" and it "has two mysterious demonic voices in it"
+the language is supposedly "Sumerian, Mayan, Hittite, Aramaic, Ugaritic, and Akkadian" or even "Nephilim"
+"The skeptics among us have suggested that the voices are the result of some advanced, unknown version of steganography"
+===========================================================================
+first impressions:
+
+the file is a video clip of an abandoned hallway with a sunlit chair in the middle - almost like an interrogation setup
+
+appears to be a song with the name and band at the bottom of the image:
+behind the mask - by dirtyprotest
+
+at about 1:50 a voices can be heard, it sounds reversed?
+
+a second voice can be heard later, it sounds down-pitched and altered in some way
+
+try .mov -> .mp3 and reverse the .mp3 file
+the first voice is intelligible now
+
+tells us the flag is the name of a 70s band that wrote "fly like an eagle"
+flag{steve_miller_band}
+
+the other voice will probably be used in a further challenge
