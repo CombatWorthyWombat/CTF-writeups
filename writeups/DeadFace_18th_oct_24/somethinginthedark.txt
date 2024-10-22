@@ -1,0 +1,17 @@
+we are given the following:
+
+a file titled: "didyouseeit.png"
+
+the companion text says that someone saw something 'else' in the attached photo
+
+then it gives a link to a tweet that says:
+
+"Anyone see that wierd object outside?? it kept flashing red, green and blue before dissapearing!"
+===========================================================================
+red, green and blue would indicate a message hidden in the red, green or blue channels
+
+use aperisolve to seperate layers
+
+a UFO with the flag written below is visible in the images
+
+flag{ar3_we_410N3??}
