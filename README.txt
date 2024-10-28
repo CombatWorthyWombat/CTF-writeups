@@ -19,6 +19,8 @@ some classic categories of challenge include:
     web - finding and exploiting a web security flaw
     rev - reverse engineering, breaking a game, forcing a state or otherwise fiddling with code
 
+each writeup will contain the category/categories in the filename
+
 with that said, the writeups will contain my thoughts, workflow and eventual solutions to challenges
 
 this will include any mistakes and dead ends I went down
