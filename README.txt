@@ -25,4 +25,6 @@ with that said, the writeups will contain my thoughts, workflow and eventual sol
 
 this will include any mistakes and dead ends I went down
 
+where applicable, credit will be given to others on the VxPx team who put writeups here
+
 many thanks, CombatWorthyWombat
