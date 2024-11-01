@@ -1,0 +1,84 @@
+general purpose, and "first impression" steganography tools:
+
+strings
+  // linux command that prints readable strings from a given file
+  // password protected hidden files often have a plaintext password in strings
+  
+hexed.it
+  // online hexdump and header editor
+  // can be used to repair malformed headers so you can work on files further
+  
+foremost
+  // used to recover files using header and footer information. used by the US airforce
+  // particularly useful when dealing with damaged jif and png files
+  
+Exiv2
+  // linux metadata extraction tool
+  // sometimes challenges can hide information, passwords or hints in plaintext in the metadata
+
+===========================================================================
+image steganography tools:
+
+steghide
+  // can hide and extract hidden data from files
+  // supports the following file formats: JPEG, BMP, WAV, AU
+  // linux based, can be gotten from github or using apt
+  
+zsteg
+  // linux tool that detects hidden data in image files
+  // supports the following formats: PNG, BMP
+  // has "-a" and "-E" commands, that perform all methods of extraction, and extracts to a given location respectivly
+  
+binwalk
+  // linux command that looks for "bins" in a file
+  // often finds hidden files and zips contained in stego files
+  // can also be used to extract those files, and has a useful recursive option
+  
+stegsolve
+  // tool used to apply colour and other filters to images, as often text in stego is hidden in the image itself
+  // you can do this in GIMP or your image editor of your choice, but stegsolve is much faster
+  
+aperisolve.com
+  // online steganography tool
+  // does some simple operations that are sometimes all you need for easy challenges
+  // runs binwalk, zsteg, steghide, foremost, ExifTool and strings
+  
+===========================================================================
+audio steganography tools:
+
+sonic visualiser
+  // while you can use many different audio programs for visualisation, I find this one the best for spectograms
+  // sometimes flags/data are hidden in the spectogram
+  // often times gives you a good idea of the "shape" of the audio, and if it looks natural or not
+  
+wavsteg
+  // a python3 tool that can extract hidden data from .WAV files
+  // when using .MP3 files, you will need to convert to .WAV first (can be done in python)
+  // can also be used to hide data in files if you ever need that
+  
+===========================================================================
+crackers:
+
+Fcrackzip
+  // kali preinstalled tool that can be used to brute password protected zips (that often turn up in stego challenges)
+  // can be used with a defined dictionary, or with a brute algorithm
+  
+john the ripper
+  // another password cracker - more broad in application than Fcrackzip
+  // can be used to brute hash collisions
+  // also configurable to use either a provided dictionary, or an "incremental" brute algorithm
+
+hashcat
+  // best all-round cracker (imo) and comes pre-loaded on kali
+  // good optimisations with both CPU and GPU environments, so you will not have issues running it in a VM
+  // can utilize precomputed lists and rainbow tables for cracking
+  // has a longer max char password limit (55) compared to other tools
+
+===========================================================================
+dictionaries:
+
+rockyou
+  // password list for use in cracking tools
+  
+seclists
+  // username list for use in cracking tools
