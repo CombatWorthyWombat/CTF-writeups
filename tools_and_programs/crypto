@@ -1,1 +1,13 @@
 dcode.fr/en
+  // great online resource for decoding ciphers. requires you to know the encryption method of your ciphertext
+  // useful for smaller ciphers like ROT13 and keyboard shifts
+  // has a pretty decent RSA solver
+
+factordb.com
+  // always use this to see if a given "n" has been solved before
+  // great place to start with RSA challenges
+
+quipqiup.com
+  // brute force substitution cipher solver
+  // useful where you have known plaintext, as it iterates through likley solves
+  // includes frequency analysis
