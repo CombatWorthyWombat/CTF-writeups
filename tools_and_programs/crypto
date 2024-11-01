@@ -11,3 +11,14 @@ quipqiup.com
   // brute force substitution cipher solver
   // useful where you have known plaintext, as it iterates through likley solves
   // includes frequency analysis
+
+sagemath
+  // python module for maths operations useful in cryptography making and breaking
+  // from sage.all import *
+  // has operations relating to almost all relevant ciphers, eg: class sage.crypto.classical.VigenereCryptosystem(S, n) [where S = a key string, and n = block length]
+  // has operations relating to modular arithmetic and factoring, eg: gcd(a,b)
+
+cyberchef
+  // has nearly 500 operations that allow you to convert to and from types of data
+  // can be used with certificates to encode and decode encryption (including PGP, RSA and a bunch more)
+  // more basic operations also available, like hex to decimal
