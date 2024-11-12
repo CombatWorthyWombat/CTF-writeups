@@ -1,0 +1,20 @@
+we get a txt file
+
+chall named Not_So_Private -> probably to do with the private key
+
+looks like normal RSA keygen of 4096
+
+public exponent is standard at  = 65537
+
+n has a wierd generation, its a random 4096bit prime times 2
+
+n = 2*p
+
+so essentially the two primes are:
+
+p = random4096
+q = 2
+
+pop into dcode -> 328472458544618590289570918928223643737038607188808646290557
+
+decimal -> hex -> ascii -> 4T${one_to_rule_them_all}
