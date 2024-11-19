@@ -1,0 +1,45 @@
+we get the following:
+
+a file named "server.py"
+
+and a nc address: nc 54.85.45.101 8001
+
+with the text:
+
+"The flag server is providing encrypted flags.
+It looks like there might be a bug in the code and I can't figure out how to decrypt it."
+
+===================================================
+
+reading the code a few things jump out:
+
+first is a flag key size line
+X25519_KEY_SIZE = 32
+
+googling that seems to suggest this is elliptic curve crypto, with diffie hellman asymmetric key exchange
+https://cryptography.io/en/latest/hazmat/primitives/asymmetric/x25519/
+
+it appears to be AES in CTR mode
+
+second is a comment
+# This is how you combine dictionaries... right?
+response = response and data
+
+so there might be something there to look at - some documentation suggests that their setup is a little off:
+
+(response = response and data) is incorrect. It should be response.update(data) or {**response, **data}.
+
+this exposes the "iv" and "ct" values directly
+
+with these, we can try some predictable keys that might have been used
+(usually even predictable keys won't be vulnerable, it's only because the response leaks additional data that we can do this)
+
+python script to:
+
+1: get data from netcat connection
+2: generate some random common and simple keys: common_keys = [b'\x00' * 32, b'\x01' * 32, b'flag{' + b'\x00' * 27, b'\xff' * 32]
+2: try to decrypt using (ct, iv, key)
+
+success! the key was particularly bad, just threw a couple guesses in there and it worked. could have iterated through some more keys if they didn't work
+
+flag{0000_wh0_knew_pub_keys_c0uld_be_bad_0000}
