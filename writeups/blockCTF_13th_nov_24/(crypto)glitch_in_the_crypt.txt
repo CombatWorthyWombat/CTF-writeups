@@ -1,0 +1,83 @@
+Glitch in the Crypt
+
+we get the following:
+
+a file named "server.py"
+
+a nc adress: nc 54.85.45.101 8010
+
+and some text:
+
+"A high-security server, SecureVault Inc., uses RSA encryption to protect sensitive data.
+The server utilizes a 1024-bit RSA key and employs the CRT optimization during decryption to improve performance.
+
+Due to a hardware fault, the server occasionally introduces errors during the decryption process.
+Specifically, the fault affects the computation of m_p = c^{d_p} mod p during the CRT step, causing m_p to be
+incorrect, while m_q = c^{d_q} mod q remains correct.
+
+As an experienced cryptanalyst, you have managed to obtain access to the server's decryption service.
+Your goal is to exploit the faulty decryption results to recover the prime factors p and q of the
+RSA modulus n, effectively breaking the encryption scheme and recovering the private key."
+
+========================================================
+
+1024 bit key
+CRT - chinese remainder theorem
+
+from first impressions, this sounds like a bellcore attack or RSA-CRT fault attack.
+
+m_p correct when m_q incorrect fulfills the nessecary criteria for bellcore
+
+we are given in the python:
+
+n = 30392456691103520456566703629789883376981975074658985351907533566054217142999128759248328829870869523368987496991637114688552687369186479700671810414151842146871044878391976165906497019158806633675101
+e = 65537
+
+when we join the server, it prompts us to either get the encrypted flag, or put in our own value to be decrypted
+
+flag = 0x3939dad4ba6dfe1d4c203e9c2acfde66493cac762d80114c7f740af92268725b7b16afd060594dd0153b26d7651be7e50061a4149d718e5b51305925dfb237844ee231d418e005aaa0701297c79e9a5e144ab0
+
+due dilligence - check factorDB -> no hits
+
+    # Simulate fault occurrence
+    faulty = random.randint(1, 10) == 1  # Fault occurs 1 in 10 times
+
+only occurs in 10% of cases
+try decrypting 0x10 a bunch of times ->
+
+most of the time outputs hex string:
+0x33dae9999b9e9b19b88572c7075c49bcb7577f8eee2b2a1d02d29f00bc9a7161bc676a7c3abbd105eb002791e49ede11c79cb678f72fd3926a0fab04bb9aac31bcebcb4f9a4f7e79a6627aeeda597311bf5b4d
+
+occasionally has an "error" where a "fault occured during decryption":
+0x10db635c8df8f5fcef00a410ce669256dcbac7a350d2830b87d6ceaaf20c9ea5d4237c8939a34dbf3b34c6ccc50217d13fcf0489465cb96b19bdb502b59411824574d280f62c17c0e27212dd18a8cd69d7633c
+0x296cc73617575eae7c3931cb6df65bc9919321ea09a63f6af7efd3897ddf3fb0336ab2c7d10162e02a7d0b20b0f6dd7f2514773b626df0a4269e75feff15cf9382987fe78fcda2315369acd676525582f2fcd6
+
+
+essentially we know the error and non-error decrypted messages have the same:
+n value
+e value
+plaintext
+m_q = c^{d_q} mod q
+
+but different:
+m_p = c^{d_p} mod p
+
+essentially we can factor the difference between these and work out the modulus n to recover the private key
+
+using the "0x10" decryption faults we can:
+
+ GCD(n, abs of correctencryption - faulty encryption)
+
+if we do find the greatest common divisor, we can be sure it appears as a factor in both message's "n" value
+therefore check its prime and not 1, and if it satisfies those criteria, its a prime factor of n
+
+we get:
+q = 9727707634026882185733922354917544266339734201376617114850662457253634956271004197770350810145775489
+
+therefore n/q = p
+
+p = 3124318476101471610798641177344759107063873312304118809566534382213883689581536970918237820746041309
+
+with p, q, n and e we can generate d -> use the decrption exponent to decrypt the flag -> success
+
+flag{cr4ck1ng_RS4_w1th_f4ul7s}
