@@ -1,0 +1,87 @@
+we are given the following:
+
+a set of files that elucidate the server code
+
+and the following message:
+
+"Everyone knows you can't reuse an OTP, but throw in a cat and a box.. Maybe it's secure?
+nc pad.ctf.intigriti.io 1348"
+
+===========================================================================
+
+Taking a look at the server.py file we can see the following:
+
+def otp(p, k):
+	k_r = (k * ((len(p) // len(k)) + 1))[:len(p)]
+	return bytes([p ^ k for p, k in zip(p, k_r)])
+
+this defines a one time passcode function, but it seems that the OTP is reused in two instances
+
+p = plaintext
+k = key
+
+the key is repeated until it matches the length of the plaintext, and then the plaintext is XORed with the extended key
+
+===========================================================================
+
+the next section is the "schrodinger's" part of the encryption:
+
+def check_cat_box(ciphertext, cat_state):
+	c = byte array(ciphertext)
+	if cat_state == 1:
+    	for i in range(len(c)):
+        	c[i] = ((c[i] << 1) & 0xFF) ^ 0xAC
+	else:
+    	for i in range(len(c)):
+        	c[i] = ((c[i] >> 1) | (c[i] << 7)) & 0xFF
+        	c[i] ^= 0xCA
+	return bytes(c)
+
+it takes the XORed ciphertext from the previous section, and does one of the following:
+
+if [cat = dead] -> shift each byte right one, circular left shifted and then XOR with "0xCA"
+if [cat = alive] -> shift each byte left one, and XOR with "0xAC"
+
+so to reverse this whole process we would need the key
+
+===========================================================================
+
+client connection:
+
+   	KEY = ''.join(random.choices(
+        	string.ascii_letters + string.digits, k=160)).encode()
+
+generates a random key of length 160 alphanumeric characters when the client joins
+
+the server then encrypts the "FLAG" with the generated key, and sends it to the client
+
+it then allows the client to send a message to be encrypted with the same OTP, but it also goes through the schrodinger's cat encryption
+
+essentially:
+
+flag \
+   	>--> (XORed) >--> printed to client	 
+key1 /
+
+client string \              	/ >--> [cat-alive] >--> printed to client
+            	>--> (XORed) >-->
+key1      	/              	\ >--> [cat=dead]  >--> printed to client
+
+reversing to find the flag plan:
+
+1 - send a string of length 160 to the server (to ensure full recovery of the flag)
+	on second inspection we don't need a client_string that long as the [cat=alive] function trims it to 8 bytes anyway
+2 - repeat until we get a [cat=alive] encoded response (seems a little easier than the other one)
+3 - reverse the [cat=alive] function to get the (client_string^key)
+4 - with (flag^key) and (client_string^key) we can recover the key
+5 - XOR the encrypted flag with the key to recover it
+
+server key^flag: 63242c155e272d090b2a177f2011532d126a0b3f672a621b39065f2c131f41292d582e5f55033d663b2e107d0e2c3a200047511e7f3e1e763907140b0e5929512f50532a19793d384a51644721580c5d201e1d6f7c006c1c3b18132f3040224e423c21451108375737023907575151270b74373e42204e79082d12183c3f3225475d0a31011c3a037b6d450733792b592c154d377917020e1f38682956145778
+160 client_string: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+[cat=alive]: 0ee0e6a00ce8e6a0b6f0a4dec80c0ef6a2faaacce0f8eabaf6a00cdea28aacf8e602fa8884fa880a8abcea06daa4ece6088804ecf0f6eceac402aa1e889cec1ef80602e604dcc4dc1e04e608f29eba06f29a08f00488f684f01e8ae8dc02e0aaaac8c8a49cbce680cca8f4aa800806eaa4c6e6f200f28cdcece80ab8fcf0c0c0000a9cde8484c4b4c0f40cb0c2dcf61eec8ebae6dc9ca09e9afafef41c9a0ac2
+
+the OTP turns out (in our case) to be: 0GDg1CDglOeXS10LfJbQGKBjLg1XfraKD6JsuJs2riB4ZeAD3s5AOLABU6b8syA8K46D5YUY85D3Nxj4Nz3O5sLuO8rCY6GbbSSeyiDwQcMbw34BeTDN7NqYAC2kIOWW72yXuuUmWM1oVYL8ApjDYygxzJHM9z2V
+
+from that we do: encrypted_flag^OTP -> success
+
+we get: "Schrodinger's cat in a quantum bind, INTIGRITI{d34d_0r_4l1v3} hidden, hard to find. Is it alive, or has fate been spun? In superposition, the game's never done."
