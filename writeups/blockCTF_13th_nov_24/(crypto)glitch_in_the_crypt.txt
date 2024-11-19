@@ -19,7 +19,7 @@ As an experienced cryptanalyst, you have managed to obtain access to the server'
 Your goal is to exploit the faulty decryption results to recover the prime factors p and q of the
 RSA modulus n, effectively breaking the encryption scheme and recovering the private key."
 
-========================================================
+===========================================================================
 
 1024 bit key
 CRT - chinese remainder theorem
