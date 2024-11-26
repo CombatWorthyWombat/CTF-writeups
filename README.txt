@@ -1,4 +1,4 @@
-a collection of writeups for various CTFs
+a collection of writeups, tools and other various related (hopefully useful) items apropos CTFs
 
 all participated in under the team name VxPx
 
