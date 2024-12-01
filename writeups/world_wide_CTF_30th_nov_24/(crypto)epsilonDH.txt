@@ -81,9 +81,18 @@ a random prime of 1024bits is generated, this is used as the modular bound = p
 this is a huge size for elliptic curve - way above top secret rated
 the flag is designated as m, then converted to bytes (as long as it is shorter than the modular bound)
 
+modular exponention function: A = powm(g, m, p)
+
+this appears to be a normal ECC function
+
+performs modular exponentiation where the base g is an Epsilon object (from above)
+the exponent m is the flag as an integer
+the modulus is p
+the powm implementation uses a standard iterative techniq
+
 contained within the chall.py file is an epsilon class:
 
-
+-----
 class Epsilon:
     def __init__(self, a, b):
         self.a, self.b = a, b
@@ -106,6 +115,7 @@ class Epsilon:
     @staticmethod
     def getRandomBits(n):
         return Epsilon(getRandomNBitInteger(n), getRandomNBitInteger(n))
+-----
 
 this is not a usual ECcrypto group, is probably the weakness that will expose the flag
 
@@ -127,17 +137,6 @@ as the epsilon function is only applied to the (Ab, Gb) coefficients, we can tre
 Aa ≡ (Ga)^m mod(p)
 
 try using smpy discrete log solver (as the above is in the format of a discrete log problem) -> seems to take ages
-have sent the .py to drgn as he has a better PC
+have sent the .py to mr drgn as he has a better PC
 
 
-
-=========================================================
-
-modular exponention function: A = powm(g, m, p)
-
-this appears to be a normal ECC function
-
-performs modular exponentiation where the base g is an Epsilon object (from above)
-the exponent m is the flag as an integer
-the modulus is p
-the powm implementation uses a standard iterative technique.
