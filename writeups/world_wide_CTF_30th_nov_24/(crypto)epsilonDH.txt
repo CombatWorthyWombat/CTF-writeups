@@ -1,1 +1,143 @@
+we are given the following:
 
+some blurb:
+"ɛ-DH
+
+DH was a bit boring so I spiced things up with my own custom algebra!"
+
+and two files:
+out.txt
+chall.py
+
+=============================================================
+
+elliptic curve crypto is out of my comfort zone so will have to do some research
+
+where RSA relies on the prime factorization problem, EC cryptography relies on the elliptic curve discrete logarithm problem
+
+for EC crypto, an elliptic curve is a 2d curve that is contained in a "finite field"
+  such that there are a finite number of points along the curve, instead of usual graphical understanding where there are infinite number of points in a line
+  sort of like if the curve only existed at whole numbers of x and y
+
+eliptic curves = y^2 = x^3 + ax + b
+
+and resemble: eliptic_curves.png
+
+3 points are chosen:
+the point at infinity - an artificial point that "contains" the finite field so we dont end up with infinity in calculations
+coordinate A
+coordinate B
+
+with RSA, we have a list of numbers that we cycle across: mod(n)
+here, we have a list of finite points along the curve that we cycle across: mod(curvepoints)
+
+we start with a generator point = g
+we repeatedly add g to itself, creating
+2g
+3g
+100g etc
+
+each time you do this, draw a line from (g) through (g-1), go to the other point where the line intersects, and flip it over the x axis
+[in the case of 1g, use a tangent]
+this generates your new g value
+each time you do this, you create a new point on the line, and there are a finite number of these points (which is what creates this as a "finite field")
+
+the MAX value basically acts as a modular bound, if a set of coordinates extends beyond the MAX, you start again at 0 and add again
+if the MAX = (100)
+and we have the point (30, 110)
+it would end up at (30, 10)
+
+as you add g to itself again and again, we move around the curve seemingly at random (simmilar to how we move around the "clock" when we do modular addition for RSA)
+
+eliptic curves are used because they have the property of when you create a line along the curve, you will only ever intersect with 3 points total (in the case of tangents the 2 points are identical and the third is not)
+
+if i put a point on the line, and ask you to find what number of g gets you there, you would never be able to guess it - this is the cryptography aspect
+could be 50(g) or 50000000(g)
+
+the hidden g is the private key, or g^a mod(n)
+n here is the same as in RSA, a product of 2 different primes
+
+PRIVATE KEY = z (this is the exponent of g, where g^z is a set of target coordinates)
+PUBLIC KEY = (x, y) (this is essentially the coordinates of 1g)
+             parameters for the equation: y^2 = x^3 + ax + b
+
+some famous parameters (or curves) are:
+  Curve1174 (251-bit)
+  Curve25519 (255-bit)
+  E-521 (521-bit)
+
+===================================================
+we are given in out.txt:
+
+p = 173924944755645003178406095718617168013285320974193311533464918516351624141198287888308296721497553891802368640344837769848433705383843820088678374708528763495103734488139368870389319280613181418960926879728892929013723036956818870578758055144789952650214552781344528622703875374067812710366180881422848078127
+g = 153222010878956025592659771364999461265827693159532862299380012549533704470078014065110463612108844661289052080113198166134196684645743591092035461757997498335465019478118882739217108862526250347939116529661007420054504044554198442479469991584947626223020239910145162698053768142977329057860163194054350707249 + 172891042743500566967040288858220451145776247635832845268756172370398885506225014595399937064138727095012954778403481826951857306135326675358326250562011754152669045113179084291737802426967956129601732530346663460456772733886633658030480267226610996560624379249886941665142384623344612516572694197005870648544ɛ
+A = 111358852433093434730054197107140594544307303976075171645711474646957878889456280742672183479878216988442037548855367380131019369757301409440037291726826948896290153981733240859717678222235993520619121828503359668550259222802623131077882382174117682287404839404525320091636778728025592053329591735052259548204 + 45354415949210290456746549581237886628185346518296265188224888250560968013577364380436312628842962917052795341010011570997705657164666282067908433629612354440756444902895692385443905786057605548586533595209894409891955713650856537806150873335015064767898088756645985769501205659617651498842444073593828856739ɛ
+
+
+===================================================
+to begin with the code:
+
+a random prime of 1024bits is generated, this is used as the modular bound = p
+this is a huge size for elliptic curve - way above top secret rated
+the flag is designated as m, then converted to bytes (as long as it is shorter than the modular bound)
+
+contained within the chall.py file is an epsilon class:
+
+
+class Epsilon:
+    def __init__(self, a, b):
+        self.a, self.b = a, b
+    
+    def __add__(self, other):
+        if type(other) == int: other = Epsilon(other, 0)
+        return Epsilon(self.a + other.a, self.b + other.b)
+    def __radd__(self, other): return self.__add__(other)
+
+    def __mul__(self, other):
+        if type(other) == int: other = Epsilon(other, 0)
+        return Epsilon(self.a * other.a, self.a * other.b + other.a * self.b)
+    def __rmul__(self, other): return self.__mul__(other)
+
+    def __mod__(self, other: int):
+        return Epsilon(self.a % other, self.b % other)
+    
+    def __repr__(self): return f"{self.a} + {self.b}ɛ"
+
+    @staticmethod
+    def getRandomBits(n):
+        return Epsilon(getRandomNBitInteger(n), getRandomNBitInteger(n))
+
+this is not a usual ECcrypto group, is probably the weakness that will expose the flag
+
+the epsilon class creates objects as follows:
+
+g = a + bε
+(here a is a point on the curve, and b is the previous point arrived at by the operation)
+
+it is a set of custom arithmetic rules
+directly exposes the structure of the starting point
+
+maybe split the A and g values into their coefficients (as A and g contain 2 numbers each):
+Aa and Ab
+Ga and Gb
+
+format a discreet log problem using (Aa, Ga)
+as the epsilon function is only applied to the (Ab, Gb) coefficients, we can treat the pairs as seperate, but co-solvable for m
+
+Aa ≡ (Ga)^m mod(p)
+
+try using smpy discrete log solver (as the above is in the format of a discrete log problem) -> seems to take ages
+have sent the .py to drgn as he has a better PC
+
+
+
+=========================================================
+
+modular exponention function: A = powm(g, m, p)
+
+this appears to be a normal ECC function
+
+performs modular exponentiation where the base g is an Epsilon object (from above)
+the exponent m is the flag as an integer
+the modulus is p
+the powm implementation uses a standard iterative technique.
