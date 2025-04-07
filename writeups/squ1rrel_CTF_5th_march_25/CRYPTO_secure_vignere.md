@@ -228,4 +228,5 @@ rot(vignere_string, (26-17))
 ========================================
 
 this gives us the string: ithoughtrandomizationwassecure
+
 wrap and we have the flag: sqrl{ithoughtrandomizationwassecure}
