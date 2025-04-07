@@ -13,7 +13,7 @@ Flag: mxpqmlslzrrhwoaellqfraiukjnmzv
 
 ========================================
 
-# **initial thoughts:**
+**initial thoughts:**
 
 we are told it is vignere, ∴ len(plaintext) == len(ciphertext)
 	- len(ciphertext) = 30
@@ -73,7 +73,7 @@ which (if we found matching pairs with "x") are:
 
 ========================================
 
-# **possible weakness:**
+**possible weakness:**
 
 not all of the characters in the key have equal appearance value
 ∴ given we have sufficiently many ciphertexts, for a given char position:
@@ -108,7 +108,7 @@ n = 45.89...
 lets aim for 1000 cases, just to be sure:
 
 ========================================
-
+`
 # Created on Tue April 06
 # Python 3
 # UTF-8
@@ -150,7 +150,7 @@ if __name__ == "__main__":
             ciphertext = retrieve_ciphertext()
             f.write(ciphertext + '\n')  # write each output to a new line in the file
             # print(ciphertext)  # print to console for my visual sanity
-			
+`		
 ========================================
 
 this gives us a dictionary file to work with
