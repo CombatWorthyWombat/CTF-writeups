@@ -13,7 +13,7 @@ Flag: mxpqmlslzrrhwoaellqfraiukjnmzv
 
 ========================================
 
-# **initial thoughts:**
+**initial thoughts:**
 
 we are told it is vignere, ∴ len(plaintext) == len(ciphertext)
 	- len(ciphertext) = 30
@@ -73,7 +73,7 @@ which (if we found matching pairs with "x") are:
 
 ========================================
 
-# **possible weakness:**
+**possible weakness:**
 
 not all of the characters in the key have equal appearance value
 ∴ given we have sufficiently many ciphertexts, for a given char position:
@@ -84,7 +84,7 @@ not all of the characters in the key have equal appearance value
 over a large enough sample of ciphertexts
 we can decrypt that one character with some certainty
 
-# **∴ plan is:**
+**∴ plan is:**
 
 ========================================
 
