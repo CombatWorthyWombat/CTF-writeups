@@ -1,0 +1,46 @@
+we are given an executable and the following blurb:
+
+"This a way how GTA5 generates hash values for vehicles :)"
+
+the file was called "keyGen" -> so looking for some sort of keygen function
+
+======================================
+
+checking out the compiler, the main function asks for a username (see boozy_main.png)
+-> then checks it
+-> then asks for a password
+-> then checks it
+
+we have to satisfy the condition: 'password = user_int_input' (after renaming)
+
+the password is determined by a custom hash function run on the username the user submits
+-> called "boozhash"
+-> as seen in boozhash.png
+
+initialises an "x" to = 0
+
+while *arg_1 != 0 (ie, for each character of the null terminated string)
+
+    -> lower_char = tolower(*arg_1)
+        -> takes the lowercase for the char pointed to at arg_1
+
+    -> x = (x + lower_char) * 0x401
+        -> new_x = (x + lower_char) * 1025
+
+    -> x = x ^ x >> 6
+        -> new_x = x XOR (x right bitshifted 6)
+
+    -> arg_1 = arg_1 + 1
+        -> increments the pointer to point at the next character in the string
+
+once it's done all that, the return function is:
+-> (x * 9 ^ x * 9 >> 0xb) * 0x8001
+    -> (9x XOR 9x >> 11) * 32769 = return value
+
+lets see if i can remake the function in python, so i can predict what a boozhash output might be for a given username
+for the username: "username" we get the hash: 1262930344147387910852449154 (see boozhash.py)
+
+running the .exe using bottles/wine
+
+
+
