@@ -1,0 +1,111 @@
+we are given the following:
+
+"Lots of puts and printf... for people who want a way to progress from level 1 to level 2 and better understand there decompiler framework.
+If you want the original source code i mightt post it in a day or 2. You are restricted from patching until the bonus stage."
+
+author: saltedMacaroni841
+
+========================================
+
+opening the program we see:
+
+**
+Enter a string: 4
+FAILURE-LVL-1: how long is your string? Do you know what a NULL terminator is?.
+**
+
+lets open it in ghidra and see if the compiled view gives us a better idea of whats going on
+after some renaming, we get the code as seen in levels_lv1.png
+
+the length of the string we input needs to be == 6 (which in c, includes a NULL character as this is a null terminated string)
+
+**
+Enter a string: aaaaa   
+Level 1 Pass: String length is correct
+FAILURE-LVL-2: Maybe the program wants a certain character in a certain position to proceed?
+**
+
+lets go back to the compiler:
+-> if (lv1_user_input[1] == '4') {
+
+so the second character of our 5 length string needs to be '4'
+
+**
+Enter a string: a4aaa
+Level 1 Pass: String length is correct
+Level 2 Pass: the character is as expectedd
+I think if requires another character in another certain position?
+**
+
+back to to ghidra:
+-> if (lv1_user_input[0] == '3') {
+
+so the first character in our string needs to be a '3'
+
+**
+Enter a string: 34aaa
+Level 1 Pass: String length is correct
+Level 2 Pass: the character is as expectedd
+Level 2.5 Pass: You understand the requirement
+you will be prompted to enter a second key..... I know. Annnnoyyyingggg
+The first key and the second key have a certain relationship figure this out to pass
+Enter string #2: aaaaa
+FAILURE-LVL-2-Look through the logic in a ghidra or something Im sure youll understand it then
+SUCCESS-LVL-3: You Did it! i hope you learned something.
+**
+
+umm okay thats a little odd, trying "aaaaa" for the second string gave me a failiure for level 2, but a success for level 3?
+
+ghidra time:
+after some more renaming, the function is as seen in levels_lv2.png
+
+    printf("Enter string #2: ");
+    fgets(lv2_user_input,0x28,stdin);
+    user_input_len = strlen(lv2_user_input);
+    lv2_len_check = (int)user_input_len;
+    if (lv2_len_check == lv1_len_check) {
+        for (counter = 0; counter < 5; counter = counter + 1) {
+            if (lv2_user_input[counter] + -0x30 != (lv1_user_input[counter] + -0x30) * 2) {
+              puts(
+                  "FAILURE-LVL-2-Look through the logic in a ghidra or something Im sure youll under stand it then"
+                  );
+              break;
+            }
+          }
+          puts("SUCCESS-LVL-3: You Did it! i hope you learned something.\n\n");
+
+-> take user input
+-> check whether the length of the lv2 input is the same length as the lv1 one
+-> for [x] character in the user input:
+    -> check if:
+        -> lv2_user_input[x] - 48
+        -> and
+        -> (lv1_user_input[x] - 48) * 2
+        -> are the same, if they are different - return fail condition
+
+so given our lv1 string was "34aaa" we need another string that satisfies the conditon above
+try python script:
+
+see levels.py
+
+I realise i've been a bit silly - the minus 48 part os just to convert the ord(x) to x as an int
+in the same way - 97 converts from uppercase to lowercase
+
+so the function checks if the new characters are 2 times the previous character
+so switching from "34aaa" to "34111" makes things way easier
+
+-> "34111" -> "68222"
+
+**
+Enter a string: 34111
+Level 1 Pass: String length is correct
+Level 2 Pass: the character is as expectedd
+Level 2.5 Pass: You understand the requirement
+you will be prompted to enter a second key..... I know. Annnnoyyyingggg
+The first key and the second key have a certain relationship figure this out to pass
+Enter string #2: 68222
+SUCCESS-LVL-3: You Did it! i hope you learned something.
+**
+
+so the earlier success wasn't meant to pop up
+cracked!
