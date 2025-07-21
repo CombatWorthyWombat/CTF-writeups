@@ -1,0 +1,78 @@
+aims:
+
+how many global variables are being used?
+how many local variables are in use?
+can you find the proper keycode?
+
+===============================================
+
+when starting the binary, we get:
+
+-> Please prvide the 8 character keycode
+
+try: ./variables-example aaaaaaaa
+
+-> Improper character in keycode detected, try again!
+
+===============================================
+
+in ghidra:
+
+aparet from the usual argc and argv global variables, we have two others (see renamed compiler @ variables-example.png):
+
+XorMe -> undef8: DEADBEEFFACECAFEh
+globalVar -> string: "KeYpress"
+
+the first check is if the length of the user submitted keycode is smaller than 8, if so fail
+
+relevant code section:
+
+    for (counter = 0; counter < 8; counter = counter + 1) {
+      if ((char)((char)(XorMe >> ((byte)(counter << 3) & 63)) + globalVar[counter] + 1) !=
+          argv[1][counter]) {
+        puts("Improper character in keycode detected, try again!\r");
+        return -1;
+      }
+    }
+    puts("Proper keycode supplied, well done!\r");
+    return_val = 0;
+
+(counter = 0; counter < 8; counter = counter + 1) -> does a loop over 9 items, as our string is a NULL terminated string and even though we can submitt more than 8 chars - they would just be ignored
+
+cleaned up:
+if(XorMe >> (counter << 3) & 63) + (globalVar[counter] + 1) != argv[1][counter] -> right bitshift XorMe by (counter left bitshift 3) and 63, then add globalVar[1][counter] + 1. If this isn't equal to the corresponding character in the supplied keycode, return fail
+
+so for each of the 8 characters of our keycode we need to calculate:
+
+    XorMe >> (counter << 3) & 63
+    globalVar[1][counter] + 1
+
+time for python
+that was a pain, i got a string to try though:
+
+./variables-example ŊİĨūŢĤġŒ
+
+-> Improper character in keycode detected, try again!
+
+hmmm something went wrong - let me see if i can find out what
+okay - i wasn't dealing with the & 63 part properly
+    i was only keeping the lowest 6 bits of the byte, i needed to use 0xFF instead to indicate the sign
+also - i was trying to take the character value of a byte value that wasn't wrapping round 255. so a value of 260 would break my code, despite being just a chr(5)
+
+finally got what I think is the correct keypass: J0(kb$!R -> but the terminal doesn't like it (as seen in variables-example.py)
+
+apparently you can wrap it in  ' ' to make it terminal safe:
+
+./variables-example 'J0(kb$!R'
+-> Proper keycode supplied, well done!
+
+nice :)
+
+===============================================
+
+to answer the questions:
+1 - two global variables, XorMe and globalVar (which pulls from an array)
+2 - three local variables: the return_val, the counter and the keycode_len
+3 - yes i can :)
+
+

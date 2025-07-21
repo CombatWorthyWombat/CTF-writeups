@@ -1,0 +1,73 @@
+aims:
+
+How many times does the loop run?
+what is the loop looking for?
+can you get access?
+
+===============================================
+
+when starting the binary, we get:
+
+-> Please provide a string!
+
+try: ./loop-example-1 hello!
+
+-> Wrong length! Try again!
+
+===============================================
+
+in ghidra:
+
+we see what appears to be two nested loops, renamed some variables and made more readable (as seen in loop-example-1.png)
+
+there is a length check first, which compares len(user input) and 15
+-> so the submitted string needs to be 15 chars
+
+try: ./loop-example-1 aaaaaaaaaaaaaaa
+
+-> Not quite what we're looking for ... maybe try again?
+
+here is the relevant code section:
+
+      counter_1 = 0;
+      for (counter_2 = 0; counter_2 < 15; counter_2 = counter_2 + 1) {
+        if (('@' < argv[1][counter_2]) && (argv[1][counter_2] < '[')) {
+          counter_1 = counter_1 + 1;
+        }
+      }
+      if (counter_1 == 8) {
+        puts("Congratulations, access granted!\r")
+
+
+(counter_2 = 0; counter_2 < 15; counter_2 = counter_2 + 1) -> does the "actions" for each of the values from 0 to 15
+    this means that 16 values for counter_2 are generated, meaning the arg[index] would make sense if it were a 15 character null terminated string (where the 16th value is NULL)
+
+if ('@' < argv[1][counter_2]) && (argv[1][counter_2] < '[') -> if the item iterated over is:
+    greater than '@'
+    smaller than '['
+
+    then increment the value of counter_1, which starts at counter_1 = 0
+
+if (counter_1 == 8) -> if, once all the loops have finished, we have found 8 characters as above, then we succeed the check
+
+on an ASCII table, '[' = 91 and '@' = 64 (decimal)
+you can do the same but converting data types in the ghidra compiler
+
+these two values actually flank all the capital alphabetic characters
+so we need to craft a string that satisfies the following:
+    15 char length
+    contains 8 capital letters
+
+try: ./loop-example-1 aaaaaaaAAAAAAAA
+
+-> Congratulations, access granted!
+
+nice
+
+===============================================
+
+to answer the questions:
+1 - the loop runs 16 times, once for each of the characters in the 15 character string plus the NULL termination
+2 - the loop is looking for values between '@' and '[', or 64 and 91
+3 - yes i can :)
+

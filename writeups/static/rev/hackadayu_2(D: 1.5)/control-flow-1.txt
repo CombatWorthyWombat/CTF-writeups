@@ -1,0 +1,81 @@
+aims:
+
+what are the three values being compared? -> user inputs, 1 and 100
+how many compare statments are there in main? -> there are 4 CMP instructions
+can you pass all the checks? -> yes
+
+===============================================
+
+when starting the binary, we get:
+
+-> Please provide two values to generate a code!
+-> Example: ./control-flow-1 100 4300
+
+lets try the provided example:
+
+-> First check failed, try again!
+
+===============================================
+
+in ghidra:
+
+some "atoi" functions appear in the intial logic
+according to c standarad:
+
+atoi essentailly trims input to just int characters, and returns an integer:
+str(hi123_im_dave!) -> int(123)
+
+a -> to -> i(nt)
+
+for the first question, i can see two values (the two the user provides)
+maybe the three values is the argc = 3, which counts argc as one of the args
+
+there are three value checks:
+
+1st: 2nd_val_int < 1st_val_int -> if no, fail
+2nd: 2nd_val_int << 1 < 1st_val_int -> if yes, fail
+3rd: ((2nd_val_int + 1st_val_int) - 1st_val_int) < 100 -> if yes, fail
+
+for the 1st to pass, our 2nd_val_int needs to be smaller than the 1st_val_int
+for the second to pass, the 2nd_val_int bitshifted left 1, needs to be larger than 1st_val_int
+for the third to pass, our 2nd_val_int needs to be smaller than 100
+
+lets just try some basic options;
+
+./control-flow-1 50 40
+
+-> Third check failed, try again!
+
+okay so i clearly got the thrird check wrong, lets see the code:
+
+      else if ((2nd_val_int + 1st_val_int) - 1st_val_int < 100) {
+        puts("Third check failed, try again!\r");
+        1st_val_int = -1;
+
+so 2nd_val_int actually needs to be larger than 100
+
+./control-flow-1 102 101
+
+-> Proper values provided! Great work!
+
+nice, that works. however i want to work out the bitshifting one
+
+bitshifting one left is the same as multiplying by 2^1, so if 2 * 2nd_val_int is smaller than 1st_val_int we get a fail condition.
+to check lets make a pair that fail at the second step:
+
+./control-flow-1 100 40
+
+-> Second check failed, try again!
+
+nice, solved with combination: ./control-flow-1 102 101
+
+ghidra compiler seen in control-flow-1.png
+
+
+
+
+
+
+
+
+
