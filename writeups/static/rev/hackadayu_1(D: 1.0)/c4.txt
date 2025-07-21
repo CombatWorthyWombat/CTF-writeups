@@ -1,0 +1,28 @@
+c4
+
+open in ghidra
+edit the main function signature to match the C standard
+rename variables for ease of understanding
+
+we have two logic checks for the password:
+
+-> if (password_len < 10) {
+
+and
+
+-> for (counter = 0; counter < (int)password_len; counter = counter + 1) {
+     -> if ("hackaday-u"[counter] + 2 != (int)argv[1][counter]) {
+         -> puts("Wrong Password!");
+
+the first checks if the supplied password is smaller than 10, and returns a fail condition if it is
+
+the second also returns a fail condition, if each character of the password doesn't match:
+-> "hackaday-u" + 2
+
+python script to create the value above (as seen in c4.py)
+jcemcfc{/w
+
+-> ./c4 jcemcfc{/w
+-> Correct! You've entered the right password ... you're getting better at this!
+
+pseudo-code as seen in c4.png

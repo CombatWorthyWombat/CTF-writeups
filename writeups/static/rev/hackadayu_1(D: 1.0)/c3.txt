@@ -1,0 +1,42 @@
+c3
+
+trying to open returns:
+-> Permission denied
+
+try opening in ghidra
+edit the function signature to C main standard
+
+the password (as before) needs to be of len > 5
+plus an additional piece of logic:
+
+-> else if ((uint)(byte)argv[1][2] - (uint)(byte)argv[1][3] == 0x20) {
+
+    -> if (password[2] - password[3] == 32
+
+so we need to find two characters that are 32 'apart'
+UTF-8 for "0" is 0x30 (48 in dec)
+UTF-8 for (48 + 32) is 0x50 or "P"
+
+so lets try:
+./c3 ??0P?
+
+bash: ./c3: Permission denied
+
+hmm okay, something i did isn't quite right
+oh i need to chmod +x the file...
+
+-> IncorRect pasSword!
+
+okay thats at least better, lets see what causes that exception:
+its the comparison for the 3rd and 4th character logic
+
+z = 122
+Z = 90
+
+so lets try that pair:
+./c3 ??zZ?
+
+-> Correct! You figured it out ... looks like we have to upgrade our security...
+
+renamed pseudo-code as seen in c3.png
+

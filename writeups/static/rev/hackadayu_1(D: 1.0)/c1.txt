@@ -1,0 +1,1 @@
+the password string is visible in the compiler

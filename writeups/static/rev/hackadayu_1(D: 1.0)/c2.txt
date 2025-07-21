@@ -1,0 +1,19 @@
+c2 challenge
+
+replace the main function signature with the C standard to clean up the compiled psuedo-code
+
+some pieces of code that seem important:
+-> if (password_len  < 5)
+-> else if ((argv*[1][0] == 'h') && (argv[1][4] == "u"))
+    -> first character is "h" and the fifth is "u"
+
+so a password that fulfills these criteria would be:
+h???u
+
+try supplying to the file:
+-> ./c2 h???u
+
+we get:
+-> Correct -- maybe we should pay attention to more characters...
+
+see c2.png for renamed pseudo-code
