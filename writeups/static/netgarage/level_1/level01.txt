@@ -1,0 +1,83 @@
+connection: ssh level1@io.netgarage.org
+password: level1
+
+just looking around...
+
+there is a wallet.dat file,
+cat wallet.dat -> srsly (xD)
+
+using cat on level01 in the /levels directory:
+
+ELF�4�4 (%%(((||h(��=�B�d������̀��1�1��< t�,0<	w
+k�
+�1�����؁�ø��M�P̀1���PS�ᙰ
+                      ø�̀�L$���%̀�Enter the 3 digit passcode to enter: Congrats you found it, now read the password for level2 from /home/level2/.pass
+��#-49>�C(KMS�Y�`���l���s���level01.asmfscanfskipwhitedoitexitscanfYouWinexitputsmainprompt1prompt2shell_start__bss_start_edata_endlevel1@io:/levels$
+
+-> okay looks like an ELF file (from the headder) how do I extract this and look at it as a binary?
+-> some strings jump out:
+    
+    Enter the 3 digit passcode to enter:
+    Congrats you found it, now read the password for level2 from /home/level2/.pass
+    level01.asmfscanfskipwitedoitexitscanfYouWinexitputsmainprompt1prompt2shell_start_bss_start_edata_endlevel1...
+
+tried using scp -> no luck
+looked up a bunch online but can't seem to find anything
+joined the IRC channel and asked there (this is basic no?)
+
+using:
+scp level1@io:/levels/level01 /home/user/Documents/IO-netgarage
+
+gets me somewhere - it asks for a password, but then it yields:
+/home/user/Documents/IO-netgarage: No such file or directory
+
+using:
+readlink -f README.txt ->
+/home/user/Documents/IO-netgarage/README.txt
+
+thats the same one i used already...
+
+try in new terminal:
+scp level1@io.netgarage.org:/levels/level01 /home/user/Documents/IO-netgarage
+
+I think that worked? -> nice it did something! (note: use scp when NOT already in the ssh connection)
+
+chmod +x level01
+./level01
+
+-> Enter the three digit passcode to enter:
+-> aaa
+-> exit
+
+lets open in ghidra:
+
+decompiler pictured in level01.png
+
+the puts(&prompt1): -> is the "Enter the three digit passcode to enter:"
+
+  iVar2 = fscanf(__stream,param_2);
+  if (iVar2 != 0x10f) {
+                    /* WARNING: Subroutine does not return */
+    exit((int)__stream);
+
+looks like if the param_2 (the user password) is not (0x10f, or 271 in dec) -> failiure condition
+
+try 271:
+-> Enter the three digit passcode to enter:
+-> 271
+-> Congrats you found it, now read the password for level2 from /home/level2/.pass
+
+hmm lets look for that on the ssh:
+
+trying to cat /home/level2/.pass
+-> Permission denied
+hmm - i can get into the level2 directory, but everything is denied permission
+
+maybe try running the file in the ssh server:
+aha! that works, after the stuff we saw earlier, we get the following:
+
+sh-4.3$ -> which i think is a user with level2 permissions, so i can just cat /home/levels/level2/.pass directly
+
+-> XNWFtWKWHhaaXoKI
+
+
