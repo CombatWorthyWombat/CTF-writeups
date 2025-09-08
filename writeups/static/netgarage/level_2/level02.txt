@@ -1,0 +1,127 @@
+connection: ssh level2@io.netgarage.org
+password: XNWFtWKWHhaaXoKI
+
+we're in!
+
+righty:
+ls yeilds:
+
+tags
+
+oh dont cat tags - its where people put their own "i waz ere" mark - its nsfw
+ls -a yields:
+
+.pass -> this is what the previous password file looked like
+-> XNWFtWKWHhaaXoKI -> its the same as before
+
+okay, lets look where the previous ELF file was, in /levels, and see if we have perms to read it:
+we do - once again looks like an ELF file (wont paste here this time)
+
+lets do:
+scp level2@io.netgarage.org:/levels/level02 /home/user/Documents/IO-netgarage
+with the password: XNWFtWKWHhaaXoKI
+
+that works - finally solved that issue
+
+looking at level02:
+
+./level02
+-> source code is available in level02.c
+
+hmm, lets grab level02.c aswell:
+
+scp level2@io.netgarage.org:/levels/level02.c /home/user/Documents/IO-netgarage
+===============================================================================
+//a little fun brought to you by bla
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+
+void catcher(int a)
+{
+        setresuid(geteuid(),geteuid(),geteuid());
+	printf("WIN!\n");
+        system("/bin/sh");
+        exit(0);
+}
+
+int main(int argc, char **argv)
+{
+	puts("source code is available in level02.c\n");
+
+        if (argc != 3 || !atoi(argv[2]))
+                return 1;
+        signal(SIGFPE, catcher);
+        return abs(atoi(argv[1])) / atoi(argv[2]);
+}
+===============================================================================
+
+geteuid = get effective user identification?
+
+there is an "if argc != 3" -> if 3 arguments are supplied (1st argc is always the function name)
+and a "|| !atoi(argv[2])" -> or if the 3rd item of the argument vector is not an int
+
+    -> return 1 (fail condition)
+
+so we need to supply 2 arguments to the binary (the first is always the function name in c)
+lets try:
+./level02 1 1 -> no luck
+
+i wonder if the "catcher" just finds any return floating around and puts it into the function, such that; main -> return -> void
+in which case, we want main to return a value to the void function that yields "WIN"
+
+signal(SIGFPE, catcher);
+SIGFPE is signal fatal pointer error -> maybe we need to provide some values (a and b) such that abs(a / b) raises this error?
+
+lets just try division by 0 -> so 0 needs to be argv[2]
+
+./level02 10 0
+-> running this didn't seem to update perms, cant open /home/level3
+
+setresuid = set real, effective and saved user or group id <- this is for sure what we want to do
+
+signal - takes 2 args:
+the error to take, and the function to jump to.
+
+so, when SIGFPE occurs, the function jumps to catcher
+catcher then sets the user to have the perms of the perms for the executable itself (although why does it call geteuid() three times?)
+
+the operation that might cause a SIGFPE is:
+    return abs(atoi(argv[1])) / atoi(argv[2])
+
+dividing by zero should trigger SIGFPE no?
+ohhhhhhh i cant use "0" as the second argument, as if argv[2]  is "False" (ie 0) it exits
+lets try 000 -> no luck
+
+SIGFPE manual page:
+"his signal actually covers all arithmetic errors, including division by zero and overflow." -> could use an overflow?
+
+signal manual page:
+"On some architectures it will generate a SIGFPE signal.
+(Also dividing the most negative integer by -1 may generate SIGFPE.)" -> could try that
+
+will a complex number count as a overflow? -> nope - there will be signifigant figs restrictions
+lets try the "most negative number divided by -1"
+
+whats the most negative?
+    - one bit is taken up by the sign
+    - so for 32bit - we have 31 magnitude bits
+    - if using 2s compliment -> -(2^31)
+    - if using signed magnitude -> -(2^31 - 1)
+    - same concept for 64 bit etc etc
+
+32bit
+2s compliment: 80000000 -> -2147483648
+    no luck
+signed magnitude: FFFFFFFF -> -4294967295
+    WIN -> nice!
+
+we can now navigate to /home/levels/level3/.pass to retrieve the password:
+OlhCmdZKbuzqngfz
+
+
+
+
+
