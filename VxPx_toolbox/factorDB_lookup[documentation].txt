@@ -1,0 +1,37 @@
+# Created on Tue Mar 03 
+# Python 3
+# UTF-8
+# @author: CWW
+
+import requests
+from enum import Enum
+
+flowchart:
+
+	take input from user ->
+	store user input as 'n' ->
+	send 'n' to factorDB ->
+	recieve json from factorDB API ->
+	parse json information, printing factors and exponents if they are present
+
+functions:
+
+_querey
+
+	handles the API and passes json to a variable [data]
+
+_parse_response:
+
+	prints responses depending on 'status' codes in [data]
+	each response code represents a different database entry for 'n'
+	if factors cannot be found, still prints response codes
+
+rdout
+	
+	wraps information presented to user in coloured borders
+	colours indicate the content of the information:
+		RED = failed attempts (here, to factorize)
+		GREEN = successful attempts
+		YELLOW = partial failed attempts
+		BLUE = informational
+		PURPLE = errors
