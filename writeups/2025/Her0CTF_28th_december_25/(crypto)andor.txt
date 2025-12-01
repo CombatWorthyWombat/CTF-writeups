@@ -1,0 +1,227 @@
+we are given the following:
+
+"Would you rather be inside solving challenges AND getting flags OR outside touching grass ?"
+
+as well as a connection: nc crypto.heroctf.fr 9000
+
+and a zip file "andor.zip"
+
+==================================================
+
+first impressions:
+
+when connecting to the server, we get the following:
+-> a = 4840502d1028303459140c60403028023350092052405110641734680053
+-> o = fbfd777e3f3f7f7ff5f5befd3f5fe6ef36ff5f3eeeee7ff5b2b97fbfff7d
+
+two 60 char long hex numbers
+each time we query the server, we get two different numbers:
+
+-> a = 4064104523792001071022600624202303201930600a00005000346e044f
+-> o = 7732e77fb3bb7f37f57dff6cfdff77edf7775f776e6fdf7678fb7eff75fd
+
+as an observation, the first number seems to often begin with 4, and the second with 7
+
+lets take a look at the source code provided in the zip file:
+--------------------------------------------------
+--------------------------------------------------
+			#!/usr/bin/env python3
+			import secrets
+
+			AND = lambda x, y: [a & b for a, b in zip(x, y)]
+			IOR = lambda x, y: [a | b for a, b in zip(x, y)]
+
+			with open("flag.txt", "rb") as f:
+				flag = [*f.read().strip()]
+				l = len(flag) // 2
+
+			while True:
+				k = secrets.token_bytes(len(flag))
+				a = AND(flag[:l], k[:l])
+				o = IOR(flag[l:], k[l:])
+
+				print("a =", bytearray(a).hex())
+				print("o =", bytearray(o).hex())
+				input("> ")
+--------------------------------------------------
+--------------------------------------------------
+
+oh yuck - I hate lamda functions
+
+well, lets try working out what this does
+there are two functions; AND and IOR (IOR seems like a intentional derivitive of XOR?)
+
+AND:
+takes two args (x and y)
+returns x & y
+
+IOR
+takes two args (x and y)
+returns x | y
+i think this is the bitwise OR operand? as opposed to ||, the logical OR operator
+(this is probably why its called IOR -> "inclusive" XOR)
+
+then "flag.txt" is opened with "rb" as an argument?
+documentation -> rb = read and byte mode (so that the bitwise operators can work - makes sense)
+
+variable "l" is set to helf the length of this bytestring
+
+variable "k" (probably a key) is then set to = secrets.token_bytes(len(flag))
+documentation says -> just generates a series of bytes of the length specified (here the same length as our flag)
+
+i can never rememebr which way round the [:] trims things - let me test it myself
+--------------------------------------------------
+--------------------------------------------------
+string = "abcdef"
+string1 = string[:3]
+string2 = string[3:]
+
+print(f"[:3] = {string1}")
+print(f"[3:] = {string2}")
+--------------------------------------------------
+--------------------------------------------------
+yeilds
+-> [:3] = abc
+-> [3:] = def
+
+the digit represents the "side" and how many characters are trimmed from each side
+
+variable "a" = AND(first_half(flag), first_half(key))
+variable "o" = IOR(second_half(flag), second_half(key))
+
+then it displays these variables as hex strings to the console
+
+so lets say that our flag is "flag"
+our bytestring for flag would be:
+-> [102, 108, 97, 103]
+
+then we generate a random byte string as a key:
+-> lets use [100, 101, 102, 103]
+
+then we
+AND the first_half(flag) with first_half(key)
+-> AND([102, 108], [100, 101]) = a
+
+IOR the second_half(flag) with second_half(key)
+-> IOR([97, 103], [102, 103]) = o
+==================================================
+
+so how do we go about retrieving the flag from this?
+we have access to an unlimited (within reason) number of encryptions of the flag - so this feels like an "oracle" implementation
+
+if we only ever got one "a", "o" pair - this wouldn't be possible (i think) - but what can we do with lots of pairs...
+
+there are 256 possible bit combinations for a byte, are there some that we can try filter for? like if the byte contains only 00000000?
+wouldn't do anything for AND (as x AND 0 = 0)
+would reveal the flag for IOR (as x OR 0 = x)
+
+unfortunatley we can't know when the random byte would be 00000000 - as the two halves of the key don't overlap in usage
+
+(24hrs later)
+
+since:
+0 AND 1 = 0
+0 AND 0 = 0
+
+if there are bits in "a" that always == 0, then we can say that the corresponding bits in the flag are also 0
+
+therefore, as:
+1 AND 1 = 1
+1 AND 0 = 0
+
+if there are bits in "a" that change from 1 to 0, then we can say that the corresponding bit in the flag are (likley) 1
+
+i think we can use OR to do our comparisons for us, for a(x):
+a(1) OR a(2) -> will show a 1 in all the bit-positions that "changed" - and are therefore 1s in the flag portion.
+if we look at our result from above, and XOR it with a(3) -> if any of the 0s change to 1s it will inherit them
+
+(as 1 OR 1 = 1 - this will preserve the "positions" of the changing bits in our answer)
+
+so time for python (this took me longer than i'd like to admit):
+--------------------------------------------------
+--------------------------------------------------
+			a_outputs = [0x4064004f230800551e0068201e24401023305130425f0020345514684412, 
+				0x00014046214020451a3060200a152020026045202207591004033446604f, 
+				0x404562226a083071132440640301481002605a1070133110010a100e000b,
+				0x00014046214020451a3060200a152020026045202207591004033446604f,
+				0x404562226a083071132440640301481002605a1070133110010a100e000b,
+				0x4845702b28590051571046405534203111600b2030444010400c00684441,
+				0x0000404d616930101b104c404f356c0000005600201a3810011c30084400,
+				0x0004324d1a011031063444440e354c222140472002097120041600400459,
+				0x406012621a3820044504224059040813235014300251001015543002205e,
+				0x0820324941383024431000004a3528222140542010415930701f004c4447,
+				0x4004306f0270005047346a401904400110204e1050022830155a20440055,
+				0x480140222909205059006444190524001110132052131930711f040e2040]
+
+
+			def OR_chain(outputs):
+				result = 0
+				for value in outputs:
+					result = result | value
+				return hex(result)
+
+			def readable(num):
+				hex_str = num[2:]
+				if len(hex_str) % 2 == 1:
+					hex_str = "0" + hex_str
+					
+				return bytes.fromhex(hex_str)
+
+			if __name__ == "__main__":
+
+				x = OR_chain(a_outputs)
+				y = readable(x)
+				print(y)
+--------------------------------------------------
+--------------------------------------------------
+
+this yields:
+-> Hero{y0u_4nd_5l33p_0r_y0u_4nd_
+
+which looks like the first half :)
+
+now for the second, IOR section - lets see if there are any combinations that result in stable bits:
+
+1 OR 1 = 1 (this would be 0 in XOR)
+1 OR 0 = 1
+0 OR 1 = 1
+0 OR 0 = 0
+
+so if the bit in the flag is a 1 -> the resulting bit will always be 1
+if the bit in the flag is 0 -> then the resulting bit can be a 1 or 0
+
+i think we can use AND here to sort our outputs for us
+o(1) AND o(2) -> will give us 1s only where both of them have a 1 in a particular bit-position
+as the moment a single 0 in a bit-position is AND-ed it will propogate through all the rest as a 0 - we can sort our bits
+
+time for more python:
+--------------------------------------------------
+--------------------------------------------------
+					def AND_chain(outputs):
+			result = 0
+			for value in outputs:
+				result = result & value
+			return hex(result)
+--------------------------------------------------
+--------------------------------------------------
+
+i tried this, but it didn't work - and ended up zero-ing out all the bytes
+oh its because i set the result variable to 0 -> which propogates 0s through all of the subsequent bytes
+we need it to be:
+result = 11111...
+
+how many 1s do we need? the same number as there are bits in our "o" results (if written as binary) or the hex representation of that (0xffffffff...)
+
+the byte_count we would need = bit_length of "o" + 7 // 8 (so that we guarantee non padded bits are counted)
+then we can construct our result variable to be:
+--------------------------------------------------
+--------------------------------------------------
+			byte_count = (o_outputs[0].bit_length() + 7) // 8
+			result = int.from_bytes(b'\xff' * byte_count, 'big')
+--------------------------------------------------
+--------------------------------------------------
+
+eyy that works!
+our reconstructed flag:
+
+-> Hero{y0u_4nd_5l33p_0r_y0u_4nd_c0ff33_3qu4l5_fl4g_4nd_p01n75}
