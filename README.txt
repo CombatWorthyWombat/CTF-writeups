@@ -23,8 +23,11 @@ each writeup will contain the category/categories in the filename
 
 with that said, the writeups will contain my thoughts, workflow and eventual solutions to challenges
 
-this will include any mistakes and dead ends I went down
+this will include any mistakes and dead ends I went down - think of them as "thoughts" rather than solutions
+
+when labeled, these will be the "messy" writeups - if a polished version is made (for submission or other use) it will be labeled as "clean"
 
 where applicable, credit will be given to others on the VxPx team who put writeups here
 
 many thanks, CombatWorthyWombat
+
